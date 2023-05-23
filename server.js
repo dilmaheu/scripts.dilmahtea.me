@@ -8,7 +8,7 @@ dotenv.config({
 
 import express from "express";
 import morganBody from "morgan-body";
-import dispatchWorkflowRequest from "./utils/dispatchWorkflowRequest";
+import dispatchWorkflowRequest from "./utils/dispatchWorkflowRequest.js";
 
 const app = express(),
   PORT = 4000;
