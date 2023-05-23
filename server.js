@@ -1,3 +1,5 @@
+// @ts-check
+
 import * as dotenv from "dotenv";
 
 dotenv.config({
@@ -6,11 +8,7 @@ dotenv.config({
 
 import express from "express";
 import morganBody from "morgan-body";
-import { Octokit } from "@octokit/core";
-
-const octokit = new Octokit({
-  auth: process.env.GITHUB_PAT,
-});
+import dispatchWorkflowRequest from "./utils/dispatchWorkflowRequest";
 
 const app = express(),
   PORT = 4000;
@@ -30,60 +28,76 @@ const shouldTriggerBuild = {
   dev: true,
 };
 
+let requestsInQueue = {
+  main: null,
+  dev: null,
+};
+
+app.get("/confirm-build", async (req, res) => {
+  const { ref } = req.query;
+
+  if (
+    ["main", "dev"].includes(ref) &&
+    req.get("Build-Webhook-Secret") === process.env.BUILD_WEBHOOK_SECRET
+  ) {
+    shouldTriggerBuild[ref] = true;
+
+    if (requestsInQueue[ref]) {
+      await dispatchWorkflowRequest(
+        res,
+        ref,
+        requestsInQueue[ref],
+        shouldTriggerBuild
+      );
+
+      requestsInQueue[ref] = null;
+
+      res.send(
+        JSON.stringify({
+          message: "Triggered build request in queue",
+        })
+      );
+    } else {
+      res.send(
+        JSON.stringify({
+          message: "No build requests in queue",
+        })
+      );
+    }
+  } else {
+    res.status(400);
+
+    res.send(
+      JSON.stringify({
+        error: "Bad request",
+      })
+    );
+  }
+});
+
 app.post("/rebuild-production-site", async (req, res) => {
   const { ref } = req.query,
     { event, model } = req.body;
 
+  const build_id =
+    event === "trigger-test"
+      ? "Triggerred Manually"
+      : event[6].toUpperCase() + event.slice(7) + " " + model;
+
   if (
     ["main", "dev"].includes(ref) &&
-    req.get("Strapi-Webhook-Secret") === process.env.STRAPI_WEBHOOK_SECRET
+    req.get("Build-Webhook-Secret") === process.env.BUILD_WEBHOOK_SECRET
   ) {
     if (!shouldTriggerBuild[ref]) {
+      requestsInQueue[ref] = build_id;
+
       res.status(429);
 
       res.send(
-        "Rebuilding of the same branch is not allowed within 10 seconds"
+        "Another build triggered by CMS update is already in progress. Next build will start automatically when the current one is finished."
       );
     } else {
-      try {
-        const build_id =
-          event === "trigger-test"
-            ? "Triggerred Manually"
-            : event[6].toUpperCase() + event.slice(7) + " " + model;
-
-        await octokit.request(
-          "POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches",
-          {
-            owner: "dilmaheu",
-            repo: "dilmahtea.me",
-            workflow_id: "deploy.yml",
-            ref,
-            headers: {
-              "X-GitHub-Api-Version": "2022-11-28",
-            },
-            inputs: {
-              build_id,
-            },
-          }
-        );
-
-        shouldTriggerBuild[ref] = false;
-
-        // allow rebuilding the same branch after 10 seconds
-        setTimeout(() => {
-          shouldTriggerBuild[ref] = true;
-        }, 10000);
-
-        res.send("OK");
-      } catch (error) {
-        res.status(500);
-
-        res.send(
-          JSON.stringify({
-            error: error.message,
-          })
-        );
-      }
+      await dispatchWorkflowRequest(res, ref, build_id, shouldTriggerBuild);
     }
   } else {
     res.status(400);
