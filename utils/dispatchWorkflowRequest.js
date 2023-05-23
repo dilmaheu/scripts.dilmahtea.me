@@ -1,5 +1,11 @@
 // @ts-check
 
+import * as dotenv from "dotenv";
+
+dotenv.config({
+  path: "/home/strapi/scripts/.env",
+});
+
 import { Octokit } from "@octokit/core";
 
 const octokit = new Octokit({
