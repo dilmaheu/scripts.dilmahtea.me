@@ -34,11 +34,6 @@ app.post("/rebuild-production-site", async (req, res) => {
   const { ref } = req.query,
     { event, model } = req.body;
 
-  const build_id =
-    event === "trigger-test"
-      ? "Triggerred Manually"
-      : event[6].toUpperCase() + event.slice(7) + " " + model;
-
   if (
     ["main", "dev"].includes(ref) &&
     req.get("Strapi-Webhook-Secret") === process.env.STRAPI_WEBHOOK_SECRET
@@ -51,6 +46,11 @@ app.post("/rebuild-production-site", async (req, res) => {
       );
     } else {
       try {
+        const build_id =
+          event === "trigger-test"
+            ? "Triggerred Manually"
+            : event[6].toUpperCase() + event.slice(7) + " " + model;
+
         await octokit.request(
           "POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches",
           {
