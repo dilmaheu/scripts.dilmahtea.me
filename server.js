@@ -51,12 +51,6 @@ app.get("/confirm-build", async (req, res) => {
       );
 
       requestsInQueue[ref] = null;
-
-      res.send(
-        JSON.stringify({
-          message: "Triggered build request in queue",
-        })
-      );
     } else {
       res.send(
         JSON.stringify({
