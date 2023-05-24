@@ -19,6 +19,8 @@ export default async function dispatchWorkflowRequest(
   shouldTriggerBuild
 ) {
   try {
+    shouldTriggerBuild[ref] = false;
+
     await octokit.request(
       "POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches",
       {
@@ -35,10 +37,10 @@ export default async function dispatchWorkflowRequest(
       }
     );
 
-    shouldTriggerBuild[ref] = false;
-
     res.send("OK");
   } catch (error) {
+    shouldTriggerBuild[ref] = true;
+
     res.status(500);
 
     res.send(
