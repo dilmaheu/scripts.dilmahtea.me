@@ -6,14 +6,61 @@ dotenv.config({
   path: "/home/strapi/scripts/.env",
 });
 
+import fs from "fs";
+import zlib from "zlib";
+import crypto from "crypto";
 import express from "express";
+import getRawBody from "raw-body";
 import morganBody from "morgan-body";
+import serveIndex from "serve-index";
+import cookieParser from "cookie-parser";
 import dispatchWorkflowRequest from "./utils/dispatchWorkflowRequest.js";
+
+const LOGS_DIR_PASSWORD_HASH = crypto
+  .createHash("sha256")
+  .update(String(process.env.LOGS_DIR_PASSWORD))
+  .digest("hex");
 
 const app = express(),
   PORT = 4000;
 
 app.use(express.json());
+app.use(cookieParser());
+
+app.use(
+  "/logs",
+  (req, res, next) => {
+    if (req.cookies["password"] !== LOGS_DIR_PASSWORD_HASH) {
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+
+      res.status(401);
+
+      res.send(
+        `
+          <script type="module">
+            const password = prompt("Enter password"),
+              digestData = new TextEncoder().encode(password),
+              passwordHash = await window.crypto.subtle.digest("SHA-256", digestData);
+
+            const passwordHashHex = Array.from(new Uint8Array(passwordHash))
+                .map((byte) => byte.toString(16).padStart(2, "0"))
+                .join("");
+
+            document.cookie = "password=" + passwordHashHex;
+
+            location.reload();
+          </script>
+        `
+      );
+
+      return;
+    }
+
+    next();
+  },
+  express.static("/home/strapi/scripts/logs"),
+  serveIndex("/home/strapi/scripts/logs", { icons: true })
+);
 
 morganBody(app, {
   prettify: false,
@@ -101,6 +148,53 @@ app.post("/rebuild-production-site", async (req, res) => {
         error: "Bad request",
       })
     );
+  }
+});
+
+app.post("/logpush", async (req, res) => {
+  if (req.get("Logpush-Secret") === process.env.LOGPUSH_SECRET) {
+    try {
+      const body = await getRawBody(req),
+        logs = zlib.unzipSync(body).toString();
+
+      await Promise.all(
+        logs
+          .trimEnd()
+          .split(/[\r\n]/)
+          .map(async (log) => {
+            const parsedLog = JSON.parse(log);
+
+            const {
+              EventTimestampMs,
+              Outcome,
+              ScriptName,
+              Event: { RayID },
+            } = parsedLog;
+
+            const logDirectory = `/home/strapi/scripts/logs/${ScriptName}/${Outcome}`;
+
+            const logFilePath = `${logDirectory}/${new Date(
+              EventTimestampMs
+            ).toISOString()}-${RayID}.json`;
+
+            if (!fs.existsSync(logDirectory)) {
+              await fs.promises.mkdir(logDirectory, { recursive: true });
+            }
+
+            await fs.promises.writeFile(logFilePath, log);
+          })
+      );
+
+      res.send("OK");
+    } catch (error) {
+      console.log(error);
+
+      res.status(500);
+      res.send("Internal Server Error");
+    }
+  } else {
+    res.status(401);
+    res.send("Unauthorized");
   }
 });
 
