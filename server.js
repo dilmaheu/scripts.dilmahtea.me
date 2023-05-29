@@ -8,18 +8,12 @@ dotenv.config({
 
 import fs from "fs";
 import zlib from "zlib";
-import crypto from "crypto";
 import express from "express";
 import getRawBody from "raw-body";
 import morganBody from "morgan-body";
 import serveIndex from "serve-index";
 import cookieParser from "cookie-parser";
 import dispatchWorkflowRequest from "./utils/dispatchWorkflowRequest.js";
-
-const LOGS_DIR_PASSWORD_HASH = crypto
-  .createHash("sha256")
-  .update(String(process.env.LOGS_DIR_PASSWORD))
-  .digest("hex");
 
 const app = express(),
   PORT = 4000;
@@ -30,7 +24,7 @@ app.use(cookieParser());
 app.use(
   "/logs",
   (req, res, next) => {
-    if (req.cookies["password"] !== LOGS_DIR_PASSWORD_HASH) {
+    if (req.cookies["password"] !== process.env.LOGS_DIR_PASSWORD) {
       res.setHeader("Content-Type", "text/html; charset=utf-8");
 
       res.status(401);
