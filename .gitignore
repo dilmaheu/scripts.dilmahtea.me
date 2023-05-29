@@ -3,3 +3,6 @@ node_modules
 
 # environmental variables
 .env
+
+# logs
+logs
