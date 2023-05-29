@@ -34,11 +34,14 @@ app.use(
           <script type="module">
             const password = prompt("Enter password"),
               digestData = new TextEncoder().encode(password),
-              passwordHash = await window.crypto.subtle.digest("SHA-256", digestData);
+              passwordHash = await window.crypto.subtle.digest(
+                "SHA-256",
+                digestData
+              );
 
             const passwordHashHex = Array.from(new Uint8Array(passwordHash))
-                .map((byte) => byte.toString(16).padStart(2, "0"))
-                .join("");
+              .map((byte) => byte.toString(16).padStart(2, "0"))
+              .join("");
 
             document.cookie = "password=" + passwordHashHex;
 
