@@ -196,6 +196,8 @@ app.post("/logpush", async (req, res) => {
 });
 
 app.all("*", async (_, res) => {
+  res.status(405);
+
   res.send(
     JSON.stringify({
       error: "Method or Path Not Allowed",
