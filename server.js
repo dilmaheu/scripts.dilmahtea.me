@@ -128,13 +128,21 @@ app.post("/rebuild-production-site", async (req, res) => {
     req.get("Build-Webhook-Secret") === process.env.BUILD_WEBHOOK_SECRET
   ) {
     if (!shouldTriggerBuild[ref]) {
-      requestsInQueue[ref] = build_id;
-
       res.status(429);
 
-      res.send(
-        "Another build triggered by CMS update is already in progress. Next build will start automatically when the current one is finished."
-      );
+      if (
+        Object.getOwnPropertyDescriptor(requestsInQueue, ref).writable === false
+      ) {
+        res.send(
+          "Another build triggered by CMS update is already in progress. Wait 10 seconds before trying again."
+        );
+      } else {
+        requestsInQueue[ref] = build_id;
+
+        res.send(
+          "Another build triggered by CMS update is already in progress. Next build will start automatically when the current one is finished."
+        );
+      }
     } else {
       await dispatchWorkflowRequest(
         res,

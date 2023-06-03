@@ -39,8 +39,10 @@ export default async function dispatchWorkflowRequest(
     );
 
     // Wait 10 seconds before allowing another build request
+    Object.defineProperty(requestsInQueue, ref, { writable: false });
+
     setTimeout(() => {
-      requestsInQueue[ref] = null;
+      Object.defineProperty(requestsInQueue, ref, { writable: true });
     }, 1000 * 10);
 
     res.send("OK");
