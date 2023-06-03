@@ -16,7 +16,8 @@ export default async function dispatchWorkflowRequest(
   res,
   ref,
   build_id,
-  shouldTriggerBuild
+  shouldTriggerBuild,
+  requestsInQueue
 ) {
   try {
     shouldTriggerBuild[ref] = false;
@@ -36,6 +37,11 @@ export default async function dispatchWorkflowRequest(
         },
       }
     );
+
+    // Wait 10 seconds before allowing another build request
+    setTimeout(() => {
+      requestsInQueue[ref] = null;
+    }, 1000 * 10);
 
     res.send("OK");
   } catch (error) {

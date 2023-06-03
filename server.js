@@ -91,7 +91,8 @@ app.get("/confirm-build", async (req, res) => {
         res,
         ref,
         requestsInQueue[ref],
-        shouldTriggerBuild
+        shouldTriggerBuild,
+        requestsInQueue
       );
 
       requestsInQueue[ref] = null;
@@ -135,7 +136,13 @@ app.post("/rebuild-production-site", async (req, res) => {
         "Another build triggered by CMS update is already in progress. Next build will start automatically when the current one is finished."
       );
     } else {
-      await dispatchWorkflowRequest(res, ref, build_id, shouldTriggerBuild);
+      await dispatchWorkflowRequest(
+        res,
+        ref,
+        build_id,
+        shouldTriggerBuild,
+        requestsInQueue
+      );
     }
   } else {
     res.status(400);
