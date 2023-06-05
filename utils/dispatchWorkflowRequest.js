@@ -21,6 +21,7 @@ export default async function dispatchWorkflowRequest(
 ) {
   try {
     shouldTriggerBuild[ref] = false;
+    requestsInQueue[ref] = null;
 
     await octokit.request(
       "POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches",

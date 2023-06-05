@@ -94,8 +94,6 @@ app.get("/confirm-build", async (req, res) => {
         shouldTriggerBuild,
         requestsInQueue
       );
-
-      requestsInQueue[ref] = null;
     } else {
       res.send(
         JSON.stringify({
