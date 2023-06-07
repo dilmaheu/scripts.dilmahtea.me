@@ -1,0 +1,25 @@
+name: Deploy Scripts
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy Scripts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy Scripts via SSH
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd scripts
+            git pull
+            pnpm i
+            pm2 restart strapi
