@@ -44,7 +44,7 @@ export default async function dispatchWorkflowRequest(
 
     setTimeout(() => {
       Object.defineProperty(requestsInQueue, ref, { writable: true });
-    }, 1000 * 10);
+    }, 1000 * 45);
 
     res.send("OK");
   } catch (error) {
