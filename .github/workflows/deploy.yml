@@ -22,4 +22,4 @@ jobs:
             cd scripts
             git pull
             pnpm i
-            pm2 restart strapi
+            pm2 restart scripts
