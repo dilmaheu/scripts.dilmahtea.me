@@ -1,13 +1,18 @@
 // @ts-check
 
+import fs from "fs";
+import path from "path";
+import zlib from "zlib";
+import { fileURLToPath } from "url";
+
 import * as dotenv from "dotenv";
 
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
+
 dotenv.config({
-  path: "/home/strapi/scripts/.env",
+  path: currentDir + "/.env",
 });
 
-import fs from "fs";
-import zlib from "zlib";
 import express from "express";
 import getRawBody from "raw-body";
 import morganBody from "morgan-body";
@@ -55,8 +60,8 @@ app.use(
 
     next();
   },
-  express.static("/home/strapi/scripts/logs"),
-  serveIndex("/home/strapi/scripts/logs", { icons: true })
+  express.static(currentDir + "/logs"),
+  serveIndex(currentDir + "/logs", { icons: true })
 );
 
 morganBody(app, {
@@ -181,7 +186,7 @@ app.post("/logpush", async (req, res) => {
               Event: { RayID },
             } = parsedLog;
 
-            const logDirectory = `/home/strapi/scripts/logs/${ScriptName}/${Outcome}`;
+            const logDirectory = currentDir + `/logs/${ScriptName}/${Outcome}`;
 
             const logFilePath = `${logDirectory}/${new Date(
               EventTimestampMs
